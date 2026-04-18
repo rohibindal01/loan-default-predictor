@@ -1,0 +1,50 @@
+stages:
+  ingest:
+    cmd: python -m src.data.ingest
+    deps:
+      - src/data/ingest.py
+      - configs/default.yaml
+    params:
+      - configs/default.yaml:
+          - data.source_url
+          - data.raw_path
+    outs:
+      - data/raw/loan_data.csv
+
+  preprocess:
+    cmd: python -m src.data.preprocess
+    deps:
+      - src/data/preprocess.py
+      - data/raw/loan_data.csv
+      - configs/default.yaml
+    params:
+      - configs/default.yaml:
+          - data.target_column
+          - data.test_size
+          - data.random_seed
+    outs:
+      - data/processed/train.parquet
+      - data/processed/test.parquet
+
+  train:
+    cmd: python -m src.models.trainer
+    deps:
+      - src/models/trainer.py
+      - src/models/loan_model.py
+      - data/processed/train.parquet
+      - data/processed/test.parquet
+      - configs/default.yaml
+    params:
+      - configs/default.yaml:
+          - model.type
+          - model.random_forest
+          - model.gradient_boosting
+          - features
+          - mlflow.experiment_name
+          - data.smote
+    outs:
+      - models/model.joblib
+      - models/feature_pipeline.joblib
+    metrics:
+      - reports/train_metrics.json:
+          cache: false

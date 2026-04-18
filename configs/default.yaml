@@ -1,0 +1,75 @@
+# @package _global_
+# Loan Default Predictor — Hydra config
+# All plumbing-level keys (model.random_forest, features.scaling, mlflow.*)
+# are compatible with Mlops-Plumbing conventions so shared utilities work.
+
+data:
+  source_url: "https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data"
+  raw_path: data/raw/loan_data.csv
+  train_path: data/processed/train.parquet
+  test_path: data/processed/test.parquet
+  target_column: default
+  test_size: 0.2
+  random_seed: 42
+  smote: true
+
+features:
+  numeric_columns:
+    - duration
+    - credit_amount
+    - installment_rate
+    - age
+    - existing_credits
+    - num_dependents
+  categorical_columns:
+    - checking_account
+    - credit_history
+    - purpose
+    - savings_account
+    - employment
+    - personal_status
+    - other_debtors
+    - property
+    - other_installments
+    - housing
+    - job
+    - telephone
+    - foreign_worker
+  binary_columns: []
+  drop_columns: []
+  scaling: standard   # compatible with Mlops-Plumbing build_feature_pipeline()
+
+model:
+  type: gradient_boosting   # random_forest | gradient_boosting
+  output_path: models/model.joblib
+  feature_pipeline_path: models/feature_pipeline.joblib
+
+  random_forest:
+    n_estimators: 300
+    max_depth: 10
+    min_samples_split: 5
+    min_samples_leaf: 2
+    class_weight: balanced
+    n_jobs: -1
+    random_state: 42
+
+  gradient_boosting:
+    n_estimators: 300
+    learning_rate: 0.05
+    max_depth: 4
+    subsample: 0.8
+    min_samples_leaf: 10
+    random_state: 42
+
+mlflow:
+  tracking_uri: http://localhost:5000
+  experiment_name: loan-default-predictor
+  model_name: loan-default-classifier
+  register_model: true
+
+serving:
+  host: 0.0.0.0
+  port: 8080
+  model_path: models/model.joblib
+  feature_pipeline_path: models/feature_pipeline.joblib
+  default_threshold: 0.40   # lower = catch more defaults
